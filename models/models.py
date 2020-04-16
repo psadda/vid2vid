@@ -59,15 +59,11 @@ class myModel(nn.Module):
         return tensors
 
 def create_model(opt):    
-    print(opt.model)            
-    if opt.model == 'vid2vid':
-        from .vid2vid_model_G import Vid2VidModelG
-        modelG = Vid2VidModelG()    
-        if opt.isTrain:
-            from .vid2vid_model_D import Vid2VidModelD
-            modelD = Vid2VidModelD()    
-    else:
-        raise ValueError("Model [%s] not recognized." % opt.model)
+    from .vid2vid_model_G import Vid2VidModelG
+    modelG = Vid2VidModelG()    
+    if opt.isTrain:
+        from .vid2vid_model_D import Vid2VidModelD
+        modelD = Vid2VidModelD()    
 
     if opt.isTrain:
         from .flownet import FlowNet
