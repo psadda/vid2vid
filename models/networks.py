@@ -51,9 +51,9 @@ def define_G(input_nc, output_nc, prev_output_nc, ngf, which_model_netG, n_downs
     netG.apply(weights_init)
     return netG
 
-def define_D(input_nc, ndf, n_layers_D, norm='instance', num_D=1, getIntermFeat=False, gpu_ids=[]):        
+def define_D(input_nc, ndf, n_layers_D, norm='instance', num_D=1, gpu_ids=[]):        
     norm_layer = get_norm_layer(norm_type=norm)   
-    netD = MultiscaleDiscriminator(input_nc, ndf, n_layers_D, norm_layer, num_D, getIntermFeat)   
+    netD = MultiscaleDiscriminator(input_nc, ndf, n_layers_D, norm_layer, num_D)
     #print_network(netD)
     if len(gpu_ids) > 0:    
         netD.cuda(gpu_ids[0])
@@ -332,7 +332,7 @@ class LocalEnhancer(nn.Module):
             input_downsampled.append(self.downsample(input_downsampled[-1]))
 
         ### output at coarest level
-        output_prev = self.model(input_downsampled[-1])        
+        output_prev = self.model(input_downsampled[-1])
         ### build up one layer at a time
         for n_local_enhancers in range(1, self.n_local_enhancers+1):
             model_downsample = getattr(self, 'model'+str(n_local_enhancers)+'_1')
@@ -385,7 +385,7 @@ class ResnetBlock(nn.Module):
 
 class MultiscaleDiscriminator(nn.Module):
     def __init__(self, input_nc, ndf=64, n_layers=3, norm_layer=nn.BatchNorm2d, 
-                 num_D=3, getIntermFeat=False):
+                 num_D=3):
         super(MultiscaleDiscriminator, self).__init__()
         self.num_D = num_D
         self.n_layers = n_layers
@@ -414,7 +414,7 @@ class MultiscaleDiscriminator(nn.Module):
 
 # Defines the PatchGAN discriminator with the specified arguments.
 class NLayerDiscriminator(nn.Module):
-    def __init__(self, input_nc, ndf=64, n_layers=3, norm_layer=nn.BatchNorm2d, getIntermFeat=False):
+    def __init__(self, input_nc, ndf=64, n_layers=3, norm_layer=nn.BatchNorm2d):
         super(NLayerDiscriminator, self).__init__()
         self.n_layers = n_layers
 
