@@ -460,14 +460,14 @@ class GANLoss(nn.Module):
         self.fake_label = target_fake_label
         self.real_label_var = None
         self.fake_label_var = None
-        self.Tensor = tensor        
+        self.Tensor = tensor
         if use_lsgan:
             self.loss = nn.MSELoss()
         else:
             self.loss = nn.BCELoss()
 
     def get_target_tensor(self, input, target_is_real):
-        target_tensor = None        
+        target_tensor = None
         gpu_id = input.get_device()
         if target_is_real:
             create_label = ((self.real_label_var is None) or
@@ -490,16 +490,16 @@ class GANLoss(nn.Module):
             loss = 0
             for input_i in input:
                 pred = input_i[-1]
-                target_tensor = self.get_target_tensor(pred, target_is_real)                
+                target_tensor = self.get_target_tensor(pred, target_is_real)
                 loss += self.loss(pred, target_tensor)
             return loss
-        else:            
+        else:
             target_tensor = self.get_target_tensor(input[-1], target_is_real)
             return self.loss(input[-1], target_tensor)
 
 class VGGLoss(nn.Module):
     def __init__(self, gpu_id=0):
-        super(VGGLoss, self).__init__()        
+        super(VGGLoss, self).__init__()
         self.vgg = Vgg19().cuda(gpu_id)
         self.criterion = nn.L1Loss()
         self.weights = [1.0/32, 1.0/16, 1.0/8, 1.0/4, 1.0]
@@ -511,7 +511,7 @@ class VGGLoss(nn.Module):
         x_vgg, y_vgg = self.vgg(x), self.vgg(y)
         loss = 0
         for i in range(len(x_vgg)):
-            loss += self.weights[i] * self.criterion(x_vgg[i], y_vgg[i].detach())        
+            loss += self.weights[i] * self.criterion(x_vgg[i], y_vgg[i].detach())
         return loss
 
 class CrossEntropyLoss(nn.Module):
@@ -521,7 +521,7 @@ class CrossEntropyLoss(nn.Module):
         self.criterion = nn.NLLLoss2d()
 
     def forward(self, output, label):
-        label = label.long().max(1)[1]        
+        label = label.long().max(1)[1]
         output = self.softmax(output)
         return self.criterion(output, label)
 
@@ -530,7 +530,7 @@ class MaskedL1Loss(nn.Module):
         super(MaskedL1Loss, self).__init__()
         self.criterion = nn.L1Loss()
 
-    def forward(self, input, target, mask):        
+    def forward(self, input, target, mask):
         mask = mask.expand(-1, input.size()[1], -1, -1)
         loss = self.criterion(input * mask, target * mask)
         return loss
@@ -549,7 +549,7 @@ class MultiscaleL1Loss(nn.Module):
         if mask is not None:
             mask = mask.expand(-1, input.size()[1], -1, -1)
         for i in range(len(self.weights)):
-            if mask is not None:                
+            if mask is not None:
                 loss += self.weights[i] * self.criterion(input * mask, target * mask)
             else:
                 loss += self.weights[i] * self.criterion(input, target)
@@ -586,9 +586,9 @@ class Vgg19(nn.Module):
 
     def forward(self, X):
         h_relu1 = self.slice1(X)
-        h_relu2 = self.slice2(h_relu1)        
-        h_relu3 = self.slice3(h_relu2)        
-        h_relu4 = self.slice4(h_relu3)        
-        h_relu5 = self.slice5(h_relu4)                
+        h_relu2 = self.slice2(h_relu1)
+        h_relu3 = self.slice3(h_relu2)
+        h_relu4 = self.slice4(h_relu3)
+        h_relu5 = self.slice5(h_relu4)
         out = [h_relu1, h_relu2, h_relu3, h_relu4, h_relu5]
         return out
