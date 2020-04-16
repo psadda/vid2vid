@@ -345,9 +345,7 @@ class GlobalGenerator(nn.Module):
         model += [nn.ReflectionPad2d(3), nn.Conv2d(ngf, output_nc, kernel_size=7, padding=0), nn.Tanh()]        
         self.model = nn.Sequential(*model)        
 
-    def forward(self, input, feat=None):
-        if feat is not None:
-            input = torch.cat([input, feat], dim=1)
+    def forward(self, input):
         output = self.model(input)                
         return output
 
@@ -392,10 +390,7 @@ class LocalEnhancer(nn.Module):
         
         self.downsample = nn.AvgPool2d(3, stride=2, padding=[1, 1], count_include_pad=False)
 
-    def forward(self, input, feat_map=None):
-        if feat_map is not None:
-            input = torch.cat([input, feat_map], dim=1)
-
+    def forward(self, input):
         ### create input pyramid
         input_downsampled = [input]
         for i in range(self.n_local_enhancers):
@@ -459,38 +454,24 @@ class MultiscaleDiscriminator(nn.Module):
         super(MultiscaleDiscriminator, self).__init__()
         self.num_D = num_D
         self.n_layers = n_layers
-        self.getIntermFeat = getIntermFeat
         ndf_max = 64
      
         for i in range(num_D):
             netD = NLayerDiscriminator(input_nc, min(ndf_max, ndf*(2**(num_D-1-i))), n_layers, norm_layer,
-                                       getIntermFeat)
-            if getIntermFeat:                                
-                for j in range(n_layers+2):
-                    setattr(self, 'scale'+str(i)+'_layer'+str(j), getattr(netD, 'model'+str(j)))                
-            else:
-                setattr(self, 'layer'+str(i), netD.model)
+                                       False)
+            setattr(self, 'layer'+str(i), netD.model)
 
         self.downsample = nn.AvgPool2d(3, stride=2, padding=[1, 1], count_include_pad=False)        
 
     def singleD_forward(self, model, input):
-        if self.getIntermFeat:
-            result = [input]            
-            for i in range(len(model)):
-                result.append(model[i](result[-1]))            
-            return result[1:]
-        else:
-            return [model(input)]
+        return [model(input)]
 
     def forward(self, input):        
         num_D = self.num_D
         result = []
         input_downsampled = input
         for i in range(num_D):
-            if self.getIntermFeat:
-                model = [getattr(self, 'scale'+str(num_D-1-i)+'_layer'+str(j)) for j in range(self.n_layers+2)]
-            else:
-                model = getattr(self, 'layer'+str(num_D-1-i))                                
+            model = getattr(self, 'layer'+str(num_D-1-i))                                
             result.append(self.singleD_forward(model, input_downsampled))
             if i != (num_D-1):
                 input_downsampled = self.downsample(input_downsampled)                    
@@ -500,7 +481,6 @@ class MultiscaleDiscriminator(nn.Module):
 class NLayerDiscriminator(nn.Module):
     def __init__(self, input_nc, ndf=64, n_layers=3, norm_layer=nn.BatchNorm2d, getIntermFeat=False):
         super(NLayerDiscriminator, self).__init__()
-        self.getIntermFeat = getIntermFeat
         self.n_layers = n_layers
 
         kw = 4
@@ -526,24 +506,13 @@ class NLayerDiscriminator(nn.Module):
 
         sequence += [[nn.Conv2d(nf, 1, kernel_size=kw, stride=1, padding=padw)]]
 
-        if getIntermFeat:
-            for n in range(len(sequence)):
-                setattr(self, 'model'+str(n), nn.Sequential(*sequence[n]))
-        else:
-            sequence_stream = []
-            for n in range(len(sequence)):
-                sequence_stream += sequence[n]
-            self.model = nn.Sequential(*sequence_stream)            
+        sequence_stream = []
+        for n in range(len(sequence)):
+            sequence_stream += sequence[n]
+        self.model = nn.Sequential(*sequence_stream)            
 
     def forward(self, input):
-        if self.getIntermFeat:
-            res = [input]
-            for n in range(self.n_layers+2):
-                model = getattr(self, 'model'+str(n))
-                res.append(model(res[-1]))
-            return res[1:]
-        else:
-            return self.model(input)        
+        return self.model(input)        
 
 ##############################################################################
 # Losses
