@@ -24,17 +24,8 @@ class BaseModel(torch.nn.Module):
     def test(self):
         pass
 
-    def get_image_paths(self):
-        pass
-
     def optimize_parameters(self):
         pass
-
-    def get_current_visuals(self):
-        return self.input
-
-    def get_current_errors(self):
-        return {}
 
     def save(self, label):
         pass
