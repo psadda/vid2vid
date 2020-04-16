@@ -50,8 +50,6 @@ class BaseOptions():
         self.parser.add_argument('--n_scales_spatial', type=int, default=1, help='number of spatial scales in the coarse-to-fine generator')        
         self.parser.add_argument('--no_first_img', action='store_true', help='if specified, generator also tries to synthesize first image')        
         self.parser.add_argument('--use_single_G', action='store_true', help='if specified, use single frame generator for the first frame')
-        self.parser.add_argument('--fg', action='store_true', help='if specified, use foreground-background seperation model')
-        self.parser.add_argument('--fg_labels', type=str, default='26', help='label indices for foreground objects')
         self.parser.add_argument('--no_flow', action='store_true', help='if specified, do not use flow warping and directly synthesize frames')
 
         # miscellaneous                
