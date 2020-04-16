@@ -114,32 +114,8 @@ class CompositeGenerator(BaseNetwork):
         super(CompositeGenerator, self).__init__()                
         self.opt = opt
         self.n_downsampling = n_downsampling
-        self.use_fg_model = use_fg_model
         self.no_flow = no_flow
         activation = nn.ReLU(True)
-        
-        if use_fg_model:
-            ### individial image generation
-            ngf_indv = ngf // 2 if n_downsampling > 2 else ngf
-            indv_nc = input_nc
-            indv_down = [nn.ReflectionPad2d(3), nn.Conv2d(indv_nc, ngf_indv, kernel_size=7, padding=0), 
-                         norm_layer(ngf_indv), activation]        
-            for i in range(n_downsampling):
-                mult = 2**i
-                indv_down += [nn.Conv2d(ngf_indv*mult, ngf_indv*mult*2, kernel_size=3, stride=2, padding=1), 
-                              norm_layer(ngf_indv*mult*2), activation]
-
-            indv_res = []
-            mult = 2**n_downsampling
-            for i in range(n_blocks):                
-                indv_res += [ResnetBlock(ngf_indv * mult, padding_type=padding_type, activation=activation, norm_layer=norm_layer)]
-            
-            indv_up = []
-            for i in range(n_downsampling):
-                mult = 2**(n_downsampling - i)            
-                indv_up += [nn.ConvTranspose2d(ngf_indv*mult, ngf_indv*mult//2, kernel_size=3, stride=2, padding=1, output_padding=1),
-                            norm_layer(ngf_indv*mult//2), activation]                                
-            indv_final = [nn.ReflectionPad2d(3), nn.Conv2d(ngf_indv, output_nc, kernel_size=7, padding=0), nn.Tanh()]        
 
         ### flow and image generation
         ### downsample        
@@ -173,13 +149,6 @@ class CompositeGenerator(BaseNetwork):
         if not no_flow:
             model_up_flow = copy.deepcopy(model_up_img)
             model_final_flow = [nn.ReflectionPad2d(3), nn.Conv2d(ngf, 2, kernel_size=7, padding=0)]                
-            model_final_w = [nn.ReflectionPad2d(3), nn.Conv2d(ngf, 1, kernel_size=7, padding=0), nn.Sigmoid()] 
-
-        if use_fg_model:
-            self.indv_down = nn.Sequential(*indv_down)
-            self.indv_res = nn.Sequential(*indv_res)
-            self.indv_up = nn.Sequential(*indv_up)
-            self.indv_final = nn.Sequential(*indv_final)
 
         self.model_down_seg = nn.Sequential(*model_down_seg)        
         self.model_down_img = nn.Sequential(*model_down_img)        
@@ -213,14 +182,7 @@ class CompositeGenerator(BaseNetwork):
             weight_ = weight.expand_as(img_raw)
             img_final = img_raw * weight_ + img_warp * (1-weight_)
         
-        img_fg_feat = None
-        if self.use_fg_model:
-            img_fg_feat = self.indv_up(self.indv_res(self.indv_down(input)))
-            img_fg = self.indv_final(img_fg_feat)
-
-            mask = mask.cuda(gpu_id).expand_as(img_raw)            
-            img_final = img_fg * mask + img_final * (1-mask) 
-            img_raw = img_fg * mask + img_raw * (1-mask)                 
+        img_fg_feat = None             
 
         return img_final, flow, weight, img_raw, img_feat, flow_feat, img_fg_feat
 
@@ -229,25 +191,9 @@ class CompositeLocalGenerator(BaseNetwork):
                  norm_layer=nn.BatchNorm2d, padding_type='reflect', scale=1):        
         super(CompositeLocalGenerator, self).__init__()                
         self.opt = opt
-        self.use_fg_model = use_fg_model
         self.no_flow = no_flow
         self.scale = scale    
         activation = nn.ReLU(True)
-        
-        if use_fg_model:
-            ### individial image generation        
-            ngf_indv = ngf // 2 if n_downsampling > 2 else ngf
-            indv_down = [nn.ReflectionPad2d(3), nn.Conv2d(input_nc, ngf_indv, kernel_size=7, padding=0), norm_layer(ngf_indv), activation,
-                         nn.Conv2d(ngf_indv, ngf_indv*2, kernel_size=3, stride=2, padding=1), norm_layer(ngf_indv*2), activation]        
-
-            indv_up = []
-            for i in range(n_blocks_local):
-                indv_up += [ResnetBlock(ngf_indv*2, padding_type=padding_type, activation=activation, norm_layer=norm_layer)]
-                    
-            indv_up += [nn.ConvTranspose2d(ngf_indv*2, ngf_indv, kernel_size=3, stride=2, padding=1, output_padding=1),
-                        norm_layer(ngf_indv), activation]                            
-            indv_final = [nn.ReflectionPad2d(3), nn.Conv2d(ngf_indv, output_nc, kernel_size=7, padding=0), nn.Tanh()]        
-
 
         ### flow and image generation
         ### downsample
@@ -270,11 +216,6 @@ class CompositeLocalGenerator(BaseNetwork):
             model_up_flow = copy.deepcopy(model_up_img)        
             model_final_flow = [nn.ReflectionPad2d(3), nn.Conv2d(ngf, 2, kernel_size=7, padding=0)]        
             model_final_w = [nn.ReflectionPad2d(3), nn.Conv2d(ngf, 1, kernel_size=7, padding=0), nn.Sigmoid()] 
-
-        if use_fg_model:
-            self.indv_down = nn.Sequential(*indv_down)        
-            self.indv_up = nn.Sequential(*indv_up)
-            self.indv_final = nn.Sequential(*indv_final)
 
         self.model_down_seg = nn.Sequential(*model_down_seg)        
         self.model_down_img = nn.Sequential(*model_down_img)        
@@ -307,13 +248,7 @@ class CompositeLocalGenerator(BaseNetwork):
             weight_ = weight.expand_as(img_raw)
             img_final = img_raw * weight_ + img_warp * (1-weight_)
 
-        img_fg_feat = None
-        if self.use_fg_model:
-            img_fg_feat = self.indv_up(self.indv_down(input) + img_fg_feat_coarse)        
-            img_fg = self.indv_final(img_fg_feat)
-            mask = mask.cuda(gpu_id).expand_as(img_raw)
-            img_final = img_fg * mask + img_final * (1-mask)
-            img_raw = img_fg * mask + img_raw * (1-mask)         
+        img_fg_feat = None    
 
         return img_final, flow, weight, img_raw, img_feat, flow_feat, img_fg_feat
 
