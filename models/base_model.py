@@ -126,15 +126,7 @@ class BaseModel(torch.nn.Module):
         else:
             val, idx = torch.sort(dists, dim=0)
             idx = idx[:num]
-        return idx.cpu().numpy().astype(int)
-
-    def get_edges(self, t):
-        edge = torch.cuda.ByteTensor(t.size()).zero_()
-        edge[:,:,:,:,1:] = edge[:,:,:,:,1:] | (t[:,:,:,:,1:] != t[:,:,:,:,:-1])
-        edge[:,:,:,:,:-1] = edge[:,:,:,:,:-1] | (t[:,:,:,:,1:] != t[:,:,:,:,:-1])
-        edge[:,:,:,1:,:] = edge[:,:,:,1:,:] | (t[:,:,:,1:,:] != t[:,:,:,:-1,:])
-        edge[:,:,:,:-1,:] = edge[:,:,:,:-1,:] | (t[:,:,:,1:,:] != t[:,:,:,:-1,:])
-        return edge.float()       
+        return idx.cpu().numpy().astype(int) 
         
     def update_learning_rate(self, epoch, model):        
         lr = self.opt.lr * (1 - (epoch - self.opt.niter) / self.opt.niter_decay)
@@ -163,7 +155,6 @@ class BaseModel(torch.nn.Module):
             self.n_frames_per_gpu = min(self.n_frames_per_gpu*2, self.opt.max_frames_per_gpu)
             self.n_frames_load = self.n_gpus * self.n_frames_per_gpu
             print('-------- Updating number of frames per gpu to %d ----------' % self.n_frames_per_gpu)
-
 
     def grid_sample(self, input1, input2):
         if self.opt.fp16: # not sure if it's necessary
