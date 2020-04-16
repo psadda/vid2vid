@@ -108,7 +108,7 @@ class BaseNetwork(nn.Module):
         return output
 
 class CompositeGenerator(BaseNetwork):
-    def __init__(self, opt, input_nc, output_nc, prev_output_nc, ngf, n_downsampling, n_blocks, use_fg_model=False, no_flow=False,
+    def __init__(self, opt, input_nc, output_nc, prev_output_nc, ngf, n_downsampling, n_blocks, no_flow=False,
                 norm_layer=nn.BatchNorm2d, padding_type='reflect'):
         assert(n_blocks >= 0)
         super(CompositeGenerator, self).__init__()                
@@ -187,7 +187,7 @@ class CompositeGenerator(BaseNetwork):
         return img_final, flow, weight, img_raw, img_feat, flow_feat, img_fg_feat
 
 class CompositeLocalGenerator(BaseNetwork):
-    def __init__(self, opt, input_nc, output_nc, prev_output_nc, ngf, n_downsampling, n_blocks_local, use_fg_model=False, no_flow=False,
+    def __init__(self, opt, input_nc, output_nc, prev_output_nc, ngf, n_downsampling, n_blocks_local, no_flow=False,
                  norm_layer=nn.BatchNorm2d, padding_type='reflect', scale=1):        
         super(CompositeLocalGenerator, self).__init__()                
         self.opt = opt
