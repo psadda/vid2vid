@@ -37,18 +37,11 @@ def define_G(input_nc, output_nc, prev_output_nc, ngf, which_model_netG, n_downs
         netG = GlobalGenerator(input_nc, output_nc, ngf, n_downsampling, opt.n_blocks, norm_layer)            
     elif which_model_netG == 'local':        
         netG = LocalEnhancer(input_nc, output_nc, ngf, n_downsampling, opt.n_blocks, opt.n_local_enhancers, opt.n_blocks_local, norm_layer)
-    elif which_model_netG == 'global_with_features':    
-        netG = Global_with_z(input_nc, output_nc, opt.feat_num, ngf, n_downsampling, opt.n_blocks, norm_layer)     
-    elif which_model_netG == 'local_with_features':    
-        netG = Local_with_z(input_nc, output_nc, opt.feat_num, ngf, n_downsampling, opt.n_blocks, opt.n_local_enhancers, opt.n_blocks_local, norm_layer)
-
     elif which_model_netG == 'composite':
         netG = CompositeGenerator(opt, input_nc, output_nc, prev_output_nc, ngf, n_downsampling, opt.n_blocks, opt.fg, opt.no_flow, norm_layer)
     elif which_model_netG == 'compositeLocal':
         netG = CompositeLocalGenerator(opt, input_nc, output_nc, prev_output_nc, ngf, n_downsampling, opt.n_blocks_local, opt.fg, opt.no_flow, 
-                                       norm_layer, scale=scale)    
-    elif which_model_netG == 'encoder':
-        netG = Encoder(input_nc, output_nc, ngf, n_downsampling, norm_layer)
+                                       norm_layer, scale=scale)
     else:
         raise NotImplementedError('Generator model name [%s] is not recognized' % which_model_netG)
 
