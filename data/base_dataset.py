@@ -39,11 +39,7 @@ class BaseDataset(data.Dataset):
 
     def update_frame_idx(self, A_paths, index):
         if self.opt.isTrain:
-            if self.opt.dataset_mode == 'pose':                
-                seq_idx = np.random.choice(len(A_paths), p=self.folder_prob) # randomly pick sequence to train
-                self.frame_idx = index
-            else:    
-                seq_idx = index % self.n_of_seqs            
+            seq_idx = index % self.n_of_seqs            
             return None, None, None, seq_idx
         else:
             self.change_seq = self.frame_idx >= self.frames_count[self.seq_idx]
