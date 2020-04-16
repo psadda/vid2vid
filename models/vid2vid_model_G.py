@@ -210,7 +210,6 @@ class Vid2VidModelG(BaseModel):
             if self.opt.use_instance:
                 real_A = real_A[:,:,:self.opt.label_nc,:,:]
             for i in range(tG-1):                
-                feat_map = self.get_face_features(real_B[:,i], pool_map[:,i]) if self.opt.dataset_mode == 'face' else None
                 fake_B = self.netG_i.forward(real_A[:,i], feat_map).unsqueeze(1)                
                 fake_B_prev = self.concat([fake_B_prev, fake_B], dim=1)
         else:
@@ -245,50 +244,10 @@ class Vid2VidModelG(BaseModel):
                 netG = networks.define_G(35, 3, 0, 32, 'local', 4, 'instance', 0, self.gpu_ids, opt)
             else:
                 raise ValueError('Single image generator does not exist')
-        elif 'face' in self.opt.dataroot:            
-            single_path = 'checkpoints/edge2face_single/'
-            load_path = single_path + 'latest_net_G.pth' 
-            opt.feat_num = 16           
-            netG = networks.define_G(15, 3, 0, 64, 'global_with_features', 3, 'instance', 0, self.gpu_ids, opt)
-            encoder_path = single_path + 'latest_net_E.pth'
-            self.netE = networks.define_G(3, 16, 0, 16, 'encoder', 4, 'instance', 0, self.gpu_ids)
-            self.netE.load_state_dict(torch.load(encoder_path))
         else:
             raise ValueError('Single image generator does not exist')
         netG.load_state_dict(torch.load(load_path))        
         return netG
-
-    def get_face_features(self, real_image, inst):                
-        feat_map = self.netE.forward(real_image, inst)            
-        #if self.opt.use_encoded_image:
-        #    return feat_map
-        
-        load_name = 'checkpoints/edge2face_single/features.npy'
-        features = np.load(load_name, encoding='latin1').item()                        
-        inst_np = inst.cpu().numpy().astype(int)
-
-        # find nearest neighbor in the training dataset
-        num_images = features[6].shape[0]
-        feat_map = feat_map.data.cpu().numpy()
-        feat_ori = torch.FloatTensor(7, self.opt.feat_num, 1) # feature map for test img (for each facial part)
-        feat_ref = torch.FloatTensor(7, self.opt.feat_num, num_images) # feature map for training imgs
-        for label in np.unique(inst_np):
-            idx = (inst == int(label)).nonzero() 
-            for k in range(self.opt.feat_num): 
-                feat_ori[label,k] = float(feat_map[idx[0,0], idx[0,1] + k, idx[0,2], idx[0,3]])
-                for m in range(num_images):
-                    feat_ref[label,k,m] = features[label][m,k]                
-        cluster_idx = self.dists_min(feat_ori.expand_as(feat_ref).cuda(), feat_ref.cuda(), num=1)
-
-        # construct new feature map from nearest neighbors
-        feat_map = self.Tensor(inst.size()[0], self.opt.feat_num, inst.size()[2], inst.size()[3])
-        for label in np.unique(inst_np):
-            feat = features[label][:,:-1]                                                    
-            idx = (inst == int(label)).nonzero()                
-            for k in range(self.opt.feat_num):                    
-                feat_map[idx[:,0], idx[:,1] + k, idx[:,2], idx[:,3]] = feat[min(cluster_idx, feat.shape[0]-1), k]
-        
-        return Variable(feat_map)
 
     def compute_mask(self, real_As, ts, te=None): # compute the mask for foreground objects
         _, _, _, h, w = real_As.size() 
