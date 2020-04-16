@@ -1,11 +1,8 @@
 ### Copyright (C) 2017 NVIDIA Corporation. All rights reserved. 
 ### Licensed under the CC BY-NC-SA 4.0 license (https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode).
 import numpy as np
-import math
 import torch
 import torch.nn.functional as F
-import os
-import sys
 from collections import OrderedDict
 from torch.autograd import Variable
 import util.util as util
@@ -31,8 +28,6 @@ class Vid2VidModelG(BaseModel):
         if opt.use_instance:
             netG_input_nc += opt.n_frames_G        
         prev_output_nc = (opt.n_frames_G - 1) * opt.output_nc 
-        if opt.openpose_only:
-            opt.no_flow = True     
 
         self.netG0 = networks.define_G(netG_input_nc, opt.output_nc, prev_output_nc, opt.ngf, opt.netG, 
                                        opt.n_downsample_G, opt.norm, 0, self.gpu_ids, opt)
