@@ -5,58 +5,6 @@ import torch
 import torch.nn as nn
 import numpy as np
 import fractions
-def lcm(a,b): return abs(a * b)/fractions.gcd(a,b) if a and b else 0
-
-def wrap_model(opt, modelG, modelD, flowNet):
-    if opt.n_gpus_gen == len(opt.gpu_ids):
-        modelG = myModel(opt, modelG)
-        modelD = myModel(opt, modelD)
-        flowNet = myModel(opt, flowNet)
-    else:             
-        if opt.batchSize == 1:
-            gpu_split_id = opt.n_gpus_gen + 1
-            modelG = nn.DataParallel(modelG, device_ids=opt.gpu_ids[0:1])                
-        else:
-            gpu_split_id = opt.n_gpus_gen
-            modelG = nn.DataParallel(modelG, device_ids=opt.gpu_ids[:gpu_split_id])
-        modelD = nn.DataParallel(modelD, device_ids=[opt.gpu_ids[0]] + opt.gpu_ids[gpu_split_id:])
-        flowNet = nn.DataParallel(flowNet, device_ids=[opt.gpu_ids[0]] + opt.gpu_ids[gpu_split_id:])
-    return modelG, modelD, flowNet
-
-class myModel(nn.Module):
-    def __init__(self, opt, model):        
-        super(myModel, self).__init__()
-        self.opt = opt
-        self.module = model
-        self.model = nn.DataParallel(model, device_ids=opt.gpu_ids)
-        self.bs_per_gpu = int(np.ceil(float(opt.batchSize) / len(opt.gpu_ids))) # batch size for each GPU
-        self.pad_bs = self.bs_per_gpu * len(opt.gpu_ids) - opt.batchSize           
-
-    def forward(self, *inputs, **kwargs):
-        inputs = self.add_dummy_to_tensor(inputs, self.pad_bs)
-        outputs = self.model(*inputs, **kwargs, dummy_bs=self.pad_bs)
-        if self.pad_bs == self.bs_per_gpu: # gpu 0 does 0 batch but still returns 1 batch
-            return self.remove_dummy_from_tensor(outputs, 1)
-        return outputs        
-
-    def add_dummy_to_tensor(self, tensors, add_size=0):        
-        if add_size == 0 or tensors is None: return tensors
-        if type(tensors) == list or type(tensors) == tuple:
-            return [self.add_dummy_to_tensor(tensor, add_size) for tensor in tensors]    
-                
-        if isinstance(tensors, torch.Tensor):            
-            dummy = torch.zeros_like(tensors)[:add_size]
-            tensors = torch.cat([dummy, tensors])
-        return tensors
-
-    def remove_dummy_from_tensor(self, tensors, remove_size=0):
-        if remove_size == 0 or tensors is None: return tensors
-        if type(tensors) == list or type(tensors) == tuple:
-            return [self.remove_dummy_from_tensor(tensor, remove_size) for tensor in tensors]    
-        
-        if isinstance(tensors, torch.Tensor):
-            tensors = tensors[remove_size:]
-        return tensors
 
 def create_model(opt):    
     from .vid2vid_model_G import Vid2VidModelG
@@ -122,7 +70,7 @@ def init_params(opt, modelG, modelD, data_loader):
     input_nc = 1 if opt.label_nc != 0 else opt.input_nc
     output_nc = opt.output_nc         
 
-    print_freq = lcm(opt.print_freq, opt.batchSize)
+    print_freq = opt.print_freq * opt.batchSize
     total_steps = (start_epoch-1) * len(data_loader) + epoch_iter
     total_steps = total_steps // print_freq * print_freq  
 
