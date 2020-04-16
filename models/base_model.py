@@ -117,16 +117,6 @@ class BaseModel(torch.nn.Module):
             down = downsample(tensor[-1].view(-1, h, w)).view(b, t, c, h//2, w//2)
             tensor.append(down)
         return tensor
-
-    def dists_min(self, a, b, num=1):        
-        dists = torch.sum(torch.sum((a-b)*(a-b), dim=0), dim=0)        
-        if num == 1:
-            val, idx = torch.min(dists, dim=0)        
-            #idx = [idx]
-        else:
-            val, idx = torch.sort(dists, dim=0)
-            idx = idx[:num]
-        return idx.cpu().numpy().astype(int) 
         
     def update_learning_rate(self, epoch, model):        
         lr = self.opt.lr * (1 - (epoch - self.opt.niter) / self.opt.niter_decay)
