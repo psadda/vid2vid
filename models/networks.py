@@ -38,9 +38,9 @@ def define_G(input_nc, output_nc, prev_output_nc, ngf, which_model_netG, n_downs
     elif which_model_netG == 'local':        
         netG = LocalEnhancer(input_nc, output_nc, ngf, n_downsampling, opt.n_blocks, opt.n_local_enhancers, opt.n_blocks_local, norm_layer)
     elif which_model_netG == 'composite':
-        netG = CompositeGenerator(opt, input_nc, output_nc, prev_output_nc, ngf, n_downsampling, opt.n_blocks, opt.fg, opt.no_flow, norm_layer)
+        netG = CompositeGenerator(opt, input_nc, output_nc, prev_output_nc, ngf, n_downsampling, opt.n_blocks, opt.no_flow, norm_layer)
     elif which_model_netG == 'compositeLocal':
-        netG = CompositeLocalGenerator(opt, input_nc, output_nc, prev_output_nc, ngf, n_downsampling, opt.n_blocks_local, opt.fg, opt.no_flow, 
+        netG = CompositeLocalGenerator(opt, input_nc, output_nc, prev_output_nc, ngf, n_downsampling, opt.n_blocks_local, opt.no_flow, 
                                        norm_layer, scale=scale)
     else:
         raise NotImplementedError('Generator model name [%s] is not recognized' % which_model_netG)
