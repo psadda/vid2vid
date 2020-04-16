@@ -19,8 +19,7 @@ class Vid2VidModelG(BaseModel):
     def initialize(self, opt):
         BaseModel.initialize(self, opt)
         self.isTrain = opt.isTrain        
-        if not opt.debug:
-            torch.backends.cudnn.benchmark = True       
+        torch.backends.cudnn.benchmark = True       
         
         # define net G                        
         self.n_scales = opt.n_scales_spatial        
@@ -82,34 +81,6 @@ class Vid2VidModelG(BaseModel):
                 beta1, beta2 = opt.beta1, 0.999
                 lr = opt.lr            
             self.optimizer_G = torch.optim.Adam(params, lr=lr, betas=(beta1, beta2))
-
-    def encode_input(self, input_map, real_image, inst_map=None):        
-        size = input_map.size()
-        self.bs, tG, self.height, self.width = size[0], size[1], size[3], size[4]
-        
-        input_map = input_map.data.cuda()                
-        if self.opt.label_nc != 0:                        
-            # create one-hot vector for label map             
-            oneHot_size = (self.bs, tG, self.opt.label_nc, self.height, self.width)
-            input_label = torch.cuda.FloatTensor(torch.Size(oneHot_size)).zero_()
-            input_label = input_label.scatter_(2, input_map.long(), 1.0)    
-            input_map = input_label        
-        input_map = Variable(input_map)
-                
-        if self.opt.use_instance:
-            inst_map = inst_map.data.cuda()            
-            edge_map = Variable(self.get_edges(inst_map))            
-            input_map = torch.cat([input_map, edge_map], dim=2)
-        
-        pool_map = None
-        if self.opt.dataset_mode == 'face':
-            pool_map = inst_map.data.cuda()
-        
-        # real images for training
-        if real_image is not None:
-            real_image = Variable(real_image.data.cuda())   
-
-        return input_map, real_image, pool_map
 
     def forward(self, input_A, input_B, inst_A, fake_B_prev, dummy_bs=0):
         tG = self.opt.n_frames_G           
